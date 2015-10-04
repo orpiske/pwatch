@@ -69,82 +69,6 @@ static void messenger_function(message_level_t level, const char *msg, ...) {
     free(ret);
 }
 
-void print_siginfo(pid_t pid) {
-    siginfo_t siginfo;
-    messenger msg = get_messenger();
-    
-    ptrace(PTRACE_GETSIGINFO, pid, NULL, &siginfo);
-    
-    msg(DEBUG, "Signal code: %d", siginfo.si_code);
-    msg(DEBUG, "Tracee received signal %d", siginfo.si_signo);
-    msg(DEBUG, "PID: %d", siginfo.si_pid);
-    msg(DEBUG, "UID: %d", siginfo.si_uid);
-}
-
-void do_pid_check() {
-    const options_t *options = get_options_object();
-    messenger msg = get_messenger();
-    int status = 0;
-        
-    ptrace(PTRACE_CONT, options->pid, NULL, NULL);
-    do {
-        pid_t ret = waitpid(options->pid, &status, WUNTRACED | WCONTINUED);
-
-        if (ret == -1) {
-            perror("waitpid");
-            exit(EXIT_FAILURE);
-        }
-
-        if (WIFEXITED(status)) {
-            msg(DEBUG, "exited, status=%d", WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            msg(DEBUG, "killed by signal %d", WTERMSIG(status));
-            print_siginfo(options->pid);
-        } else if (WIFSTOPPED(status)) {
-            if (WSTOPSIG(status) == SIGINT) {
-                msg(DEBUG, "interrupted %d", WSTOPSIG(status));
-                print_siginfo(options->pid);
-                
-                kill(options->pid, WSTOPSIG(status));
-
-                break;
-            } else {
-                if (WSTOPSIG(status) == SIGTERM) {
-                    msg(DEBUG, "terminated %d", WSTOPSIG(status));
-                    print_siginfo(options->pid);
-                    
-                    kill(options->pid, WSTOPSIG(status));
-                    break;
-                }
-            }
-            
-            msg(DEBUG, "stopped by signal %d", WSTOPSIG(status));
-            ptrace(PTRACE_CONT, options->pid, NULL, NULL);          
-        } else if (WIFCONTINUED(status)) {
-            msg(DEBUG, "continued");
-        }
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-}
-
-static void do_ptrace() {
-    const options_t *options = get_options_object();
-    messenger msg = get_messenger();
-    
-    long ret = 0;
-    ret = ptrace(PTRACE_SEIZE, options->pid, NULL, NULL);
-
-    do_pid_check(options->pid);
-    msg(DEBUG, "ptrace exit code: %ld", ret);
-    
-    
-    if (strlen(options->command) > 0) {
-        msg(DEBUG, "Running command '%s'", options->command);
-
-        // TODO: break the arguments ...
-        execlp(options->command, NULL, NULL);
-    }
-}
-
 int main(int argc, char **argv) {
     int c;
     int option_index = 0;
@@ -195,7 +119,7 @@ int main(int argc, char **argv) {
     }
 
 
-    do_ptrace();
+    trace_start();
 
     // bool ret = run(options, &transaction);
 

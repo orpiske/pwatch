@@ -4,6 +4,7 @@ add_executable(
 	atexit
         options.c
         messenger.c
+        trace.c
 	main.c
 )
 

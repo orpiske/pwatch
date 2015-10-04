@@ -21,21 +21,9 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <getopt.h>
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/ptrace.h>
-    
 #include "options.h"
 #include "messenger.h"
+#include "trace.h"
     
 
 #ifdef __cplusplus

@@ -33,6 +33,20 @@
 #include "messenger.h"
 #include "sigutil.h"
 
+
+#if defined LINUX_BUILD
+
+# include <linux/version.h>
+
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+#   define PTRACE_ATTACH_MODE PTRACE_SEIZE
+# else 
+#    define PTRACE_ATTACH_MODE PTRACE_ATTACH
+# endif // LINUX_VERSION_CODE <= KERNEL_VERSION(3, 4, 0)
+#else 
+#define PTRACE_ATTACH_MODE PTRACE_ATTACH
+#endif 
+
 #ifdef __cplusplus
 extern "C" {
 #endif

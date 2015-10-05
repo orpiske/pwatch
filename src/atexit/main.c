@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
         static struct option long_options[] = {
             { "pid", true, 0, 'p'},
             { "debug", false, 0, 'd'},
+	    { "trace", false, 0, 't'},
             { "command", true, 0, 'c'},
             { "help", false, 0, 'h'},
             { 0, 0, 0, 0}
@@ -113,6 +114,10 @@ int main(int argc, char **argv) {
             }
             case 'c': {
                 strncpy(options->command, optarg, sizeof(options->command) - 1);
+                break;
+            }
+	    case 't': {
+                options->trace = true;
                 break;
             }
         }

@@ -34,6 +34,7 @@ typedef struct options_t_ {
     char command[OPT_MAX_STR_SIZE];
     bool quiet;
     bool debug;
+    bool trace;
 } options_t;
 
 

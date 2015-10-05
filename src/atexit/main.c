@@ -26,44 +26,30 @@ static void messenger_function(message_level_t level, const char *msg, ...)
 
 	switch (level) {
 	case TRACE:
-	{
 		fprintf(stderr, "[TRACE]: %s\n", ret);
 		break;
-	}
 	case DEBUG:
-	{
 		const options_t *options = get_options_object();
 
 		if (options && options->debug) {
 			fprintf(stderr, "[DEBUG]: %s\n", ret);
 		}
 		break;
-	}
 	case INFO:
-	{
 		fprintf(stderr, "[INFO]: %s\n", ret);
 		break;
-	}
 	case WARNING:
-	{
 		fprintf(stderr, "[WARNING]: %s\n", ret);
 		break;
-	}
 	case ERROR:
-	{
 		fprintf(stderr, "[ERROR]: %s\n", ret);
 		break;
-	}
 	case FATAL:
-	{
 		fprintf(stderr, "[FATAL]: %s\n", ret);
 		break;
-	}
 	default:
-	{
 		fprintf(stderr, "[MSG]: %s\n", ret);
 		break;
-	}
 	}
 
 	va_end(ap);
@@ -107,25 +93,17 @@ int main(int argc, char **argv)
 
 		switch (c) {
 		case 'p':
-		{
 			options->pid = strtol(optarg, NULL, 10);
 			break;
-		}
 		case 'd':
-		{
 			options->debug = true;
 			break;
-		}
 		case 'c':
-		{
 			strncpy(options->command, optarg, sizeof(options->command) - 1);
 			break;
-		}
 		case 't':
-		{
 			options->trace = true;
 			break;
-		}
 		}
 	}
 

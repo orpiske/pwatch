@@ -23,14 +23,16 @@ static void messenger_function(message_level_t level, const char *msg, ...)
 
 	va_start(ap, msg);
 	vasprintf(&ret, msg, ap);
+	
+	const options_t *options = get_options_object();
 
 	switch (level) {
 	case TRACE:
-		fprintf(stderr, "[TRACE]: %s\n", ret);
+		if (options && options->trace) { 
+			fprintf(stderr, "[TRACE]: %s\n", ret);
+		}
 		break;
 	case DEBUG:
-		const options_t *options = get_options_object();
-
 		if (options && options->debug) {
 			fprintf(stderr, "[DEBUG]: %s\n", ret);
 		}

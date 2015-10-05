@@ -61,16 +61,13 @@ static void trace_tracee_stopped(int status, int pid) {
 	
 	switch (WSTOPSIG(status)) {
 	case SIGINT:
-		msg(INFO, "Tracee process interrupted %d",
-			WSTOPSIG(status));
+		msg(INFO, "Tracee process interrupted");
 		break;
 	case SIGTERM:
-		msg(INFO, "Tracee process terminated %d", 
-			WSTOPSIG(status));
+		msg(INFO, "Tracee process terminated");
 		break;
 	default:
-		msg(DEBUG, "Tracee process stopped by signal %d", 
-			WSTOPSIG(status));
+		msg(DEBUG, "Tracee process stopped by signal");
 		break;
 	}
 
@@ -96,7 +93,7 @@ static void trace_tracee_signaled(int status, int pid) {
 static void trace_tracee_exited(int status) {
 	messenger msg = get_messenger();
 	
-	msg(DEBUG, "Tracee process exited with status: %d", WEXITSTATUS(status));
+	msg(INFO, "Tracee process exited with status: %d", WEXITSTATUS(status));
 }
 
 static void trace_do_check()

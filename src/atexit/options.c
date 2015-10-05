@@ -23,6 +23,7 @@ static void options_new_with_defaults(options_t *ret) {
         bzero(ret->command, sizeof(ret->command));
         ret->quiet = true;
         ret->debug = false;
+	ret->trace = false;
 }
 
 

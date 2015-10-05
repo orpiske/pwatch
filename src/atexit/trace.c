@@ -20,9 +20,35 @@ static void trace_print_siginfo(pid_t pid) {
     ptrace(PTRACE_GETSIGINFO, pid, NULL, &siginfo);
 
     msg(DEBUG, "Signal code: %d", siginfo.si_code);
-    msg(DEBUG, "Tracee received signal %d", siginfo.si_signo);
+    
+    
     msg(DEBUG, "PID: %d", siginfo.si_pid);
     msg(DEBUG, "UID: %d", siginfo.si_uid);
+}
+
+static bool trace_is_running(pid_t pid) {
+    int status = 0;
+    messenger msg = get_messenger();
+    
+    usleep(500);
+    pid_t ret = waitpid(pid, &status, 0);
+    
+    
+    // TODO: this is ridiculous -> check for errno and all the stuff
+    if (ret == -1) {
+        msg(ERROR, "Unable to get process status");
+        
+        return false;
+    }
+    
+    if (WIFEXITED(status)) {
+        msg(ERROR, "The process is not running anymore");
+        return false;
+        
+    }
+
+    msg(INFO, "The process is still running");
+    return true;
 }
 
 static void trace_do_check() {
@@ -32,11 +58,11 @@ static void trace_do_check() {
 
     ptrace(PTRACE_CONT, options->pid, NULL, NULL);
     do {
-        pid_t ret = waitpid(options->pid, &status, WUNTRACED | WCONTINUED);
+        pid_t ret = waitpid(options->pid, &status, 0);
 
         if (ret == -1) {
-            perror("waitpid");
-            exit(EXIT_FAILURE);
+            msg(ERROR, "Unable to obtain process details for %d", options->pid);
+            return;
         }
 
         if (WIFEXITED(status)) {
@@ -44,29 +70,35 @@ static void trace_do_check() {
         } else if (WIFSIGNALED(status)) {
             msg(DEBUG, "killed by signal %d", WTERMSIG(status));
             trace_print_siginfo(options->pid);
-        } else if (WIFSTOPPED(status)) {
-            if (WSTOPSIG(status) == SIGINT) {
-                msg(DEBUG, "interrupted %d", WSTOPSIG(status));
-                trace_print_siginfo(options->pid);
-
-                kill(options->pid, WSTOPSIG(status));
-
-                break;
-            } else {
-                if (WSTOPSIG(status) == SIGTERM) {
-                    msg(DEBUG, "terminated %d", WSTOPSIG(status));
-                    trace_print_siginfo(options->pid);
-
-                    kill(options->pid, WSTOPSIG(status));
-                    break;
+        } 
+        else {
+            if (WIFSTOPPED(status)) {
+                switch (WSTOPSIG(status)) {
+                    case SIGINT: {
+                        msg(INFO, "Tracee process interrupted %d", WSTOPSIG(status));
+                        break;
+                    }
+                    case SIGTERM: {
+                        msg(DEBUG, "Tracee process terminated %d", WSTOPSIG(status));
+                        break;
+                    }
+                    
+                    default: {
+                        msg(DEBUG, "Tracee process stopped by signal %d", WSTOPSIG(status));
+                        break;
+                    }
                 }
+                
+                trace_print_siginfo(options->pid);
+                ptrace(PTRACE_CONT, options->pid, NULL, WSTOPSIG(status));
             }
-
-            msg(DEBUG, "stopped by signal %d", WSTOPSIG(status));
-            ptrace(PTRACE_CONT, options->pid, NULL, NULL);
-        } else if (WIFCONTINUED(status)) {
-            msg(DEBUG, "continued");
+            else {
+                ptrace(PTRACE_CONT, options->pid, NULL, NULL);
+            }
+            
+            
         }
+        
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 }
 
@@ -76,11 +108,13 @@ void trace_start() {
 
     long ret = 0;
     ret = ptrace(PTRACE_SEIZE, options->pid, NULL, NULL);
+    msg(DEBUG, "ptrace seize exit code: %ld", ret);
 
     trace_do_check();
-    msg(DEBUG, "ptrace exit code: %ld", ret);
-
-
+    
+    ret = ptrace(PTRACE_DETACH, options->pid, NULL, NULL);
+    msg(DEBUG, "ptrace detach exit code: %ld", ret);
+    
     if (strlen(options->command) > 0) {
         msg(DEBUG, "Running command '%s'", options->command);
 

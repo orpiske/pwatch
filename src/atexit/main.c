@@ -126,11 +126,5 @@ int main(int argc, char **argv) {
 
     trace_start();
 
-    // bool ret = run(options, &transaction);
-
-    // return (ret == true) ? EXIT_SUCCESS : EXIT_FAILURE;
-
     return EXIT_SUCCESS;
-
-
 }

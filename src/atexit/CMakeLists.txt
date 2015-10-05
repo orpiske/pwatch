@@ -9,6 +9,11 @@ add_executable(
 	main.c
 )
 
+install(TARGETS
+            atexit 
+	RUNTIME DESTINATION ${RUNTIME_DIR}
+)
+
 
 
 

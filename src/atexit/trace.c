@@ -65,6 +65,49 @@ static bool trace_is_running(pid_t pid)
 	return true;
 }
 
+static void trace_tracee_stopped(int status, int pid) {
+	messenger msg = get_messenger();
+	
+	switch (WSTOPSIG(status)) {
+	case SIGINT:
+		msg(INFO, "Tracee process interrupted %d",
+			WSTOPSIG(status));
+		break;
+	case SIGTERM:
+		msg(INFO, "Tracee process terminated %d", 
+			WSTOPSIG(status));
+		break;
+	default:
+		msg(DEBUG, "Tracee process stopped by signal %d", 
+			WSTOPSIG(status));
+		break;
+	}
+
+	trace_print_siginfo(pid);
+	/**
+	 * We have to make sure that it continues and passes the signal to the 
+	 * tracee. That's why we call ptrace with the data argument as 
+	 * WSTOPSIG(status) - the signal number - so that when the kernel wakes
+	 * up the process, it delivers the signal
+	 */
+	ptrace(PTRACE_CONT, pid, NULL, WSTOPSIG(status));
+}
+
+static void trace_tracee_signaled(int status, int pid) {
+	messenger msg = get_messenger();
+	
+	msg(DEBUG, "Tracee process was killed with signal: %d", 
+		WTERMSIG(status));
+	
+	trace_print_siginfo(pid);
+}
+
+static void trace_tracee_exited(int status) {
+	messenger msg = get_messenger();
+	
+	msg(DEBUG, "Tracee process exited with status: %d", WEXITSTATUS(status));
+}
+
 static void trace_do_check()
 {
 	const options_t *options = get_options_object();
@@ -81,40 +124,14 @@ static void trace_do_check()
 		}
 
 		if (WIFEXITED(status)) {
-			msg(DEBUG, "exited, status=%d", WEXITSTATUS(status));
+			trace_tracee_exited(status);
 		} else if (WIFSIGNALED(status)) {
-			msg(DEBUG, "killed by signal %d", WTERMSIG(status));
-			trace_print_siginfo(options->pid);
+			trace_tracee_signaled(status, options->pid);
+		} else if (WIFSTOPPED(status)) {
+			trace_tracee_stopped(status, options->pid);
 		} else {
-			if (WIFSTOPPED(status)) {
-				switch (WSTOPSIG(status)) {
-				case SIGINT:
-				{
-					msg(INFO, "Tracee process interrupted %d", WSTOPSIG(status));
-					break;
-				}
-				case SIGTERM:
-				{
-					msg(DEBUG, "Tracee process terminated %d", WSTOPSIG(status));
-					break;
-				}
-
-				default:
-				{
-					msg(DEBUG, "Tracee process stopped by signal %d", WSTOPSIG(status));
-					break;
-				}
-				}
-
-				trace_print_siginfo(options->pid);
-				ptrace(PTRACE_CONT, options->pid, NULL, WSTOPSIG(status));
-			} else {
-				ptrace(PTRACE_CONT, options->pid, NULL, NULL);
-			}
-
-
+			ptrace(PTRACE_CONT, options->pid, NULL, NULL);
 		}
-
 	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
 }
 
@@ -125,12 +142,12 @@ void trace_start()
 
 	long ret = 0;
 	ret = ptrace(PTRACE_SEIZE, options->pid, NULL, NULL);
-	msg(DEBUG, "ptrace seize exit code: %ld", ret);
+	msg(TRACE, "Syscall ptrace seize exited with code: %ld", ret);
 
 	trace_do_check();
 
 	ret = ptrace(PTRACE_DETACH, options->pid, NULL, NULL);
-	msg(DEBUG, "ptrace detach exit code: %ld", ret);
+	msg(TRACE, "Syscall ptrace detach exited with code: %ld", ret);
 
 	if (strlen(options->command) > 0) {
 		msg(DEBUG, "Running command '%s'", options->command);

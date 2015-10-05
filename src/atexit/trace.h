@@ -29,6 +29,7 @@
 
 #include "options.h"
 #include "messenger.h"
+#include "sigutil.h"
 
 #ifdef __cplusplus
 extern "C" {

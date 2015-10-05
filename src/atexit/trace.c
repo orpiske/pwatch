@@ -28,18 +28,6 @@ static void trace_print_siginfo(pid_t pid)
 
 	msg(INFO, "Signal: %s (%s). Signal code text: %s. PID: %d. UID: %d",
 		signo_text, signo_desc, sigcode_text, siginfo.si_pid, siginfo.si_uid);
-
-	
-	if (siginfo.si_pid != 0 && (siginfo.si_signo == SIGTERM || siginfo.si_signo == SIGKILL)) {
-		char test[1024];
-		bzero(test, sizeof(test));
-
-		snprintf(test, sizeof(test), "/proc/%d/cmdline", siginfo.si_pid);
-
-		msg(DEBUG, "Running /usr/bin/cat %s", test);
-		execlp("/usr/bin/cat", test, NULL);
-	}
-
 }
 
 static bool trace_is_running(pid_t pid)

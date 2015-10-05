@@ -69,8 +69,6 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	pid_t pid = 0;
-
 	set_options_object(options);
 	set_messenger(messenger_function);
 	while (1) {

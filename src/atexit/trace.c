@@ -26,9 +26,10 @@ static void trace_print_siginfo(pid_t pid)
 	const char *signo_text = trace_get_signo_text(siginfo.si_signo);
 	const char *signo_desc = strsignal(siginfo.si_signo);
 
-	msg(DEBUG, "Signal: %s (%s). Signal code text: %s. PID: %d. UID: %d",
+	msg(INFO, "Signal: %s (%s). Signal code text: %s. PID: %d. UID: %d",
 		signo_text, signo_desc, sigcode_text, siginfo.si_pid, siginfo.si_uid);
 
+	
 	if (siginfo.si_pid != 0 && (siginfo.si_signo == SIGTERM || siginfo.si_signo == SIGKILL)) {
 		char test[1024];
 		bzero(test, sizeof(test));

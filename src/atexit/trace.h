@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -51,7 +52,7 @@
 extern "C" {
 #endif
 
-void trace_start();
+int trace_start();
 
 
 #ifdef __cplusplus

@@ -15,19 +15,27 @@
  */
 #include "trace.h"
 
-static void trace_print_siginfo(pid_t pid)
+static int trace_print_siginfo(pid_t pid)
 {
 	siginfo_t siginfo;
 	messenger msg = get_messenger();
 
-	ptrace(PTRACE_GETSIGINFO, pid, NULL, &siginfo);
+	int ptrace_ret = ptrace(PTRACE_GETSIGINFO, pid, NULL, &siginfo);
+	if (ptrace_ret == -1) {
+		msg(ERROR, 
+			"Unable to read signal information for process %d: %s", 
+			pid, strerror(errno));
+		return -1;
+	}
 
 	const char *sigcode_text = trace_get_sigcode_text(siginfo.si_code);
 	const char *signo_text = trace_get_signo_text(siginfo.si_signo);
 	const char *signo_desc = strsignal(siginfo.si_signo);
 
 	msg(INFO, "Signal: %s (%s). Signal code text: %s. PID: %d. UID: %d",
-		signo_text, signo_desc, sigcode_text, siginfo.si_pid, siginfo.si_uid);
+		signo_text, signo_desc, sigcode_text, siginfo.si_pid, 
+		siginfo.si_uid);
+	return 0;
 }
 
 static bool trace_is_running(pid_t pid)
@@ -39,9 +47,10 @@ static bool trace_is_running(pid_t pid)
 	pid_t ret = waitpid(pid, &status, 0);
 
 
-	// TODO: this is ridiculous -> check for errno and all the stuff
 	if (ret == -1) {
-		msg(ERROR, "Unable to get process status");
+		msg(ERROR,
+			"Unable to determine if the process %d is running: %s",
+			pid, strerror(errno));
 
 		return false;
 	}
@@ -56,9 +65,10 @@ static bool trace_is_running(pid_t pid)
 	return true;
 }
 
-static void trace_tracee_stopped(int status, int pid) {
+static int trace_tracee_stopped(int status, int pid)
+{
 	messenger msg = get_messenger();
-	
+
 	switch (WSTOPSIG(status)) {
 	case SIGINT:
 		msg(INFO, "Tracee process interrupted");
@@ -78,70 +88,120 @@ static void trace_tracee_stopped(int status, int pid) {
 	 * WSTOPSIG(status) - the signal number - so that when the kernel wakes
 	 * up the process, it delivers the signal
 	 */
-	ptrace(PTRACE_CONT, pid, NULL, WSTOPSIG(status));
+	int ptrace_ret = ptrace(PTRACE_CONT, pid, NULL, WSTOPSIG(status));
+	if (ptrace_ret == -1) {
+		msg(ERROR, "Unable to wake up process %d: %s", pid, 
+			strerror(errno));
+		return -1;
+	}
+	
+	return 0;
+	
 }
 
-static void trace_tracee_signaled(int status, int pid) {
+static int trace_tracee_signaled(int status, int pid)
+{
 	messenger msg = get_messenger();
-	
-	msg(DEBUG, "Tracee process was killed with signal: %d", 
+
+	msg(DEBUG, "Tracee process was killed with signal: %d",
 		WTERMSIG(status));
-	
-	trace_print_siginfo(pid);
+
+	return trace_print_siginfo(pid);
 }
 
-static void trace_tracee_exited(int status) {
+static void trace_tracee_exited(int status)
+{
 	messenger msg = get_messenger();
-	
+
 	msg(INFO, "Tracee process exited with status: %d", WEXITSTATUS(status));
 }
 
-static void trace_do_check()
+static int trace_do_check()
 {
 	const options_t *options = get_options_object();
 	messenger msg = get_messenger();
 	int status = 0;
 
-	ptrace(PTRACE_CONT, options->pid, NULL, NULL);
+	int ptrace_ret = ptrace(PTRACE_CONT, options->pid, NULL, NULL);
+	
+	// If ESRCH, it may mean that the process is not available yet. In that 
+	// case, we ignore and fail later
+	if (ptrace_ret == -1 && errno != ESRCH) {
+		msg(ERROR, "Unable to wake up process %d: %s", options->pid, 
+			strerror(errno));
+		return -1;
+	}
+	
 	do {
 		pid_t ret = waitpid(options->pid, &status, 0);
 
 		if (ret == -1) {
-			msg(ERROR, "Unable to obtain process details for %d", options->pid);
-			return;
+			msg(ERROR, "Unable to obtain process details for %d: %s",
+				options->pid, strerror(errno));
+			return -1;
 		}
 
 		if (WIFEXITED(status)) {
 			trace_tracee_exited(status);
+			ptrace_ret = 0;
 		} else if (WIFSIGNALED(status)) {
-			trace_tracee_signaled(status, options->pid);
+			ptrace_ret = trace_tracee_signaled(status, options->pid);
 		} else if (WIFSTOPPED(status)) {
-			trace_tracee_stopped(status, options->pid);
+			ptrace_ret = trace_tracee_stopped(status, options->pid);
 		} else {
-			ptrace(PTRACE_CONT, options->pid, NULL, NULL);
+			ptrace_ret = ptrace(PTRACE_CONT, options->pid, NULL, 
+				NULL);
+		}
+		
+		if (ptrace_ret == -1) {
+			msg(ERROR, "Unable to wake up process %d: %s",
+				options->pid, strerror(errno));
+			return -1;
 		}
 	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+	
+	return 0;
 }
 
-void trace_start()
+int trace_start()
 {
 	const options_t *options = get_options_object();
 	messenger msg = get_messenger();
 
-	long ret = 0;
+	int ret = 0;
+
 	ret = ptrace(PTRACE_SEIZE, options->pid, NULL, NULL);
-	msg(TRACE, "Syscall ptrace seize exited with code: %ld", ret);
+	if (ret == -1) {
+		msg(ERROR, "Syscall ptrace seize exited with code %d: %s", ret,
+			strerror(errno));
+
+		return ret;
+	}
 
 	trace_do_check();
 
 	ret = ptrace(PTRACE_DETACH, options->pid, NULL, NULL);
-	msg(TRACE, "Syscall ptrace detach exited with code: %ld", ret);
+	if (ret == -1 && errno != ESRCH) {
+		msg(ERROR, "Syscall ptrace detach exited with code %d: %s", ret,
+			strerror(errno));
+
+		return ret;
+	}
+	
 
 	if (strlen(options->command) > 0) {
 		msg(DEBUG, "Running command '%s'", options->command);
 
 		// TODO: break the arguments ...
-		execlp(options->command, NULL, NULL);
+		ret = execlp(options->command, NULL, NULL);
+		if (ret == -1) {
+			msg(ERROR, "Unable to execute command '%s': %s",
+				options->command, strerror(errno));
+		}
+
+		return ret;
 	}
+
+	return 0;
 }
 

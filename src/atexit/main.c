@@ -108,7 +108,5 @@ int main(int argc, char **argv)
 	}
 
 
-	trace_start();
-
-	return EXIT_SUCCESS;
+	return trace_start();
 }

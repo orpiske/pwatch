@@ -18,7 +18,6 @@
 static options_t *options = NULL;
 
 static void options_new_with_defaults(options_t *ret) {
-	FILE *file = NULL;
 
         bzero(ret->command, sizeof(ret->command));
         ret->quiet = true;

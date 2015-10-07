@@ -17,39 +17,39 @@
 
 static options_t *options = NULL;
 
-static void options_new_with_defaults(options_t *ret) {
-
-        bzero(ret->command, sizeof(ret->command));
-        ret->quiet = true;
-        ret->debug = false;
+static void options_new_with_defaults(options_t *ret)
+{
+	bzero(ret->command, sizeof(ret->command));
+	ret->quiet = true;
+	ret->debug = false;
 	ret->trace = false;
 }
 
+options_t *options_new()
+{
+	options_t *ret = (options_t *) malloc(sizeof(options_t));
+
+	if (!ret) {
+		fprintf(stderr, "Not enough memory to allocate for options object\n");
+
+		return NULL;
+	}
 
 
-options_t *options_new() {
-    options_t *ret = (options_t *) malloc(sizeof (options_t));
 
-    if (!ret) {
-        fprintf(stderr, "Not enough memory to allocate for options object\n");
+	options_new_with_defaults(ret);
 
-        return NULL;
-    }
-
-   
-
-    options_new_with_defaults(ret);
-
-    return ret;
+	return ret;
 }
 
-void set_options_object(options_t *obj) {
+void set_options_object(options_t *obj)
+{
 	if (options == NULL) {
 		options = obj;
 	}
 }
 
-
-const options_t *get_options_object(void) {
+const options_t *get_options_object(void)
+{
 	return options;
 }

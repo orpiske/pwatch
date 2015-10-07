@@ -59,6 +59,19 @@ static void messenger_function(message_level_t level, const char *msg, ...)
 	fflush(NULL);
 }
 
+static void show_help() {
+	printf("Usage: ");
+	printf("\t-p\t--pid=<pid> pid to trace\n");
+	printf("\t-d\t--debug runs in debug verbose mode\n");
+	printf("\t-t\t--trace runs in trace verbose mode\n");
+	
+	printf("\t-D\t--daemon runs in backgroup\n");
+	printf("\t-c\t--command=<command> executes a command after the tracee has exited\n");
+	
+	printf("\t-L\t--logdir=<logdir> a directory to save the logs (mandatory for --daemon)\n");
+	printf("\t-h\t--help show this help\n");
+}
+
 int main(int argc, char **argv)
 {
 	int c;
@@ -85,10 +98,11 @@ int main(int argc, char **argv)
 			{ 0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "p:dDc:L:H", long_options, &option_index);
+		c = getopt_long(argc, argv, "p:dDc:L:h", long_options, &option_index);
 		if (c == -1) {
 			if (optind == 1) {
 				fprintf(stderr, "Not enough options\n");
+				show_help();
 				return EXIT_FAILURE;
 			}
 			break;
@@ -112,6 +126,13 @@ int main(int argc, char **argv)
 			break;
 		case 't':
 			options->trace = true;
+			break;
+		case 'h':
+			show_help();
+			return EXIT_SUCCESS;
+		default:
+			printf("Invalid or missing option\n");
+			show_help();
 			break;
 		}
 	}

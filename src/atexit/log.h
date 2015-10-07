@@ -13,39 +13,33 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef LOG_H
+#define	LOG_H
 
-#include "defaults.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
 
-#ifdef __cplusplus
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include "messenger.h"
+
+#define APPEND_SIZE_REMAP 64
+
+#ifdef	__cplusplus
 extern "C" {
 #endif
 
-
-typedef struct options_t_ {
-    pid_t pid;
-    char command[OPT_MAX_STR_SIZE];
-    char logdir[OPT_MAX_STR_SIZE];
-    bool daemon;
-    bool debug;
-    bool trace;
-} options_t;
+bool remap_log(const char *dir, const char *base_name, pid_t pid, FILE *fd);
 
 
-options_t *options_new();
-void set_options_object(options_t *ojb);
-const options_t *get_options_object(void);
-
-#ifdef __cplusplus
+#ifdef	__cplusplus
 }
 #endif
 
-#endif /* OPTIONS_H */
+#endif	/* LOG_H */
 

@@ -24,6 +24,7 @@ extern "C" {
 #include "options.h"
 #include "messenger.h"
 #include "trace.h"
+#include "log.h"
     
 
 #ifdef __cplusplus

@@ -56,6 +56,7 @@ static void messenger_function(message_level_t level, const char *msg, ...)
 
 	va_end(ap);
 	free(ret);
+	fflush(NULL);
 }
 
 int main(int argc, char **argv)
@@ -76,13 +77,15 @@ int main(int argc, char **argv)
 		static struct option long_options[] = {
 			{ "pid", true, 0, 'p'},
 			{ "debug", false, 0, 'd'},
+			{ "daemon", false, 0, 'D'},
 			{ "trace", false, 0, 't'},
 			{ "command", true, 0, 'c'},
+			{ "logdir", true, 0, 'L'},
 			{ "help", false, 0, 'h'},
 			{ 0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "p:dc:H", long_options, &option_index);
+		c = getopt_long(argc, argv, "p:dDc:L:H", long_options, &option_index);
 		if (c == -1) {
 			if (optind == 1) {
 				fprintf(stderr, "Not enough options\n");
@@ -98,15 +101,42 @@ int main(int argc, char **argv)
 		case 'd':
 			options->debug = true;
 			break;
+		case 'D':
+			options->daemon = true;
+			break;
 		case 'c':
 			strncpy(options->command, optarg, sizeof(options->command) - 1);
+			break;
+		case 'L':
+			strncpy(options->logdir, optarg, sizeof(options->logdir) - 1);
 			break;
 		case 't':
 			options->trace = true;
 			break;
 		}
 	}
+	
+	if (strlen(options->logdir) > 0) {
+		remap_log(options->logdir, "atexit", options->pid, stderr);
+	}
+	
+	if (options->daemon == true) {
+		
+		
+		int child = fork();
+		if (child == 0) {
+			return trace_start();
+		}
+		else if (child < 0) {
+			messenger_function(ERROR, 
+				"Unable to create child process: %s", strerror(errno));
 
-
+			return EXIT_FAILURE;
+		}
+		else {
+			return EXIT_SUCCESS;
+		}
+	}
+	
 	return trace_start();
 }

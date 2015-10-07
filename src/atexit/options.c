@@ -20,7 +20,8 @@ static options_t *options = NULL;
 static void options_new_with_defaults(options_t *ret)
 {
 	bzero(ret->command, sizeof(ret->command));
-	ret->quiet = true;
+	bzero(ret->logdir, sizeof(ret->logdir));
+	ret->daemon = false;
 	ret->debug = false;
 	ret->trace = false;
 }

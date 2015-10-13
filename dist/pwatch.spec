@@ -3,7 +3,7 @@
 
 Summary:            Process watch utilities
 Name:               pwatch
-Version:            0.0.1-beta
+Version:            0.0.1
 Release:            1%{?dist}
 License:            GPLv2+
 Group:              Applications/System

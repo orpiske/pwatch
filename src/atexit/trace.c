@@ -170,7 +170,7 @@ int trace_start()
 
 	int ret = 0;
 
-	ret = ptrace(PTRACE_SEIZE, options->pid, NULL, NULL);
+	ret = ptrace(PTRACE_ATTACH_MODE, options->pid, NULL, NULL);
 	if (ret == -1) {
 		msg(ERROR, "Syscall ptrace seize exited with code %d: %s", ret,
 			strerror(errno));

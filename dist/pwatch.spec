@@ -18,7 +18,7 @@ BuildRequires:      gcc
 Process watching tools
 
 %prep
-%autosetup -n pwatch-%{version}
+%setup -n pwatch-%{version}
 
 %build
 cmake -DCMAKE_INSTALL_PREFIX=%{buildroot}/usr/local
